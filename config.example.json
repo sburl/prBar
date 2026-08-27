@@ -1,0 +1,18 @@
+{
+  "includeDependabotInCounts": false,
+  "refreshInterval": 120,
+  "repos": [
+    {
+      "owner": "octocat",
+      "name": "Hello-World",
+      "shortLabel": "HW",
+      "displayName": "Hello World"
+    },
+    {
+      "owner": "cli",
+      "name": "cli",
+      "shortLabel": "GH",
+      "displayName": "GitHub CLI"
+    }
+  ]
+}
