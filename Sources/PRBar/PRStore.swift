@@ -68,7 +68,10 @@ final class PRStore {
             return
         }
 
-        let next = await client.fetchDashboard(repos: settings.repos)
+        let next = await client.fetchDashboard(
+            repos: settings.repos,
+            worktreeCounter: WorktreeCounter()
+        )
         lastFetchedIDs = ids
         snapshot = next
         lastError = next.hasErrors

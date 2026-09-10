@@ -12,7 +12,8 @@
       "owner": "cli",
       "name": "cli",
       "shortLabel": "GH",
-      "displayName": "GitHub CLI"
+      "displayName": "GitHub CLI",
+      "localPath": "~/developer/cli"
     }
   ]
 }
