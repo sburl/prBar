@@ -6,6 +6,9 @@ public struct TrackedRepo: Equatable, Sendable, Identifiable, Codable {
     public var name: String
     public var shortLabel: String
     public var displayName: String
+    /// Optional path to a local clone, used to count git worktrees.
+    /// When unset, common locations like `~/developer/<name>` are probed.
+    public var localPath: String?
 
     public var fullName: String { "\(owner)/\(name)" }
 
@@ -13,11 +16,18 @@ public struct TrackedRepo: Equatable, Sendable, Identifiable, Codable {
         URL(string: "https://github.com/\(fullName)/pulls")!
     }
 
-    public init(owner: String, name: String, shortLabel: String? = nil, displayName: String? = nil) {
+    public init(
+        owner: String,
+        name: String,
+        shortLabel: String? = nil,
+        displayName: String? = nil,
+        localPath: String? = nil
+    ) {
         self.owner = owner
         self.name = name
         self.displayName = displayName?.isEmpty == false ? displayName! : name
         self.shortLabel = Self.makeShortLabel(shortLabel, name: name)
+        self.localPath = localPath?.isEmpty == false ? localPath : nil
     }
 
     public init(from decoder: Decoder) throws {
@@ -26,11 +36,12 @@ public struct TrackedRepo: Equatable, Sendable, Identifiable, Codable {
         let name = try container.decode(String.self, forKey: .name)
         let shortLabel = try container.decodeIfPresent(String.self, forKey: .shortLabel)
         let displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
-        self.init(owner: owner, name: name, shortLabel: shortLabel, displayName: displayName)
+        let localPath = try container.decodeIfPresent(String.self, forKey: .localPath)
+        self.init(owner: owner, name: name, shortLabel: shortLabel, displayName: displayName, localPath: localPath)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case owner, name, shortLabel, displayName
+        case owner, name, shortLabel, displayName, localPath
     }
 
     public static func parse(
@@ -99,6 +110,20 @@ public struct TrackedRepo: Equatable, Sendable, Identifiable, Codable {
     }
 }
 
+public enum ReviewDecision: String, Equatable, Sendable {
+    case approved = "APPROVED"
+    case changesRequested = "CHANGES_REQUESTED"
+    case reviewRequired = "REVIEW_REQUIRED"
+
+    public var label: String {
+        switch self {
+        case .approved: "Approved"
+        case .changesRequested: "Changes requested"
+        case .reviewRequired: "Review required"
+        }
+    }
+}
+
 public struct PullRequest: Equatable, Sendable, Identifiable {
     public var id: String { "\(repoID)#\(number)" }
     public let repoID: String
@@ -108,6 +133,7 @@ public struct PullRequest: Equatable, Sendable, Identifiable {
     public let isDraft: Bool
     public let authorLogin: String
     public let createdAt: Date?
+    public let reviewDecision: ReviewDecision?
 
     public var isDependabot: Bool {
         Dependabot.matches(login: authorLogin)
@@ -120,7 +146,8 @@ public struct PullRequest: Equatable, Sendable, Identifiable {
         url: URL,
         isDraft: Bool,
         authorLogin: String,
-        createdAt: Date? = nil
+        createdAt: Date? = nil,
+        reviewDecision: ReviewDecision? = nil
     ) {
         self.repoID = repoID
         self.number = number
@@ -129,6 +156,7 @@ public struct PullRequest: Equatable, Sendable, Identifiable {
         self.isDraft = isDraft
         self.authorLogin = authorLogin
         self.createdAt = createdAt
+        self.reviewDecision = reviewDecision
     }
 
     /// Fixed-width opened date so submenu rows line up: `08-12`.
@@ -143,10 +171,26 @@ public struct PullRequest: Equatable, Sendable, Identifiable {
         return String(format: "%02d-%02d", month, day)
     }
 
+    /// Compact status glyphs: ✓ approved, ± changes requested.
+    /// Un-reviewed PRs stay unmarked.
+    public var statusGlyphs: String {
+        switch reviewDecision {
+        case .approved: "✓"
+        case .changesRequested: "±"
+        case .reviewRequired, nil: ""
+        }
+    }
+
+    /// Human-readable status, e.g. `Changes requested`.
+    public var statusSummary: String? {
+        reviewDecision?.label
+    }
+
     public func menuTitle(markDependabot: Bool, titleLimit: Int = 72) -> String {
         var prefix = "#\(number)"
         if isDraft { prefix += " [draft]" }
         if markDependabot, isDependabot { prefix += " [deps]" }
+        if !statusGlyphs.isEmpty { prefix += " \(statusGlyphs)" }
         let clipped: String
         if title.count > titleLimit {
             clipped = String(title.prefix(titleLimit - 1)) + "…"
@@ -167,11 +211,24 @@ public struct RepoSnapshot: Equatable, Sendable {
     public var repo: TrackedRepo
     public var pullRequests: [PullRequest]
     public var error: String?
+    /// Remote branch count (refs/heads). nil when the lookup failed or hasn't run.
+    public var branchCount: Int?
+    /// Linked worktrees in the local clone, excluding the main checkout.
+    /// nil when no local clone was found.
+    public var worktreeCount: Int?
 
-    public init(repo: TrackedRepo, pullRequests: [PullRequest] = [], error: String? = nil) {
+    public init(
+        repo: TrackedRepo,
+        pullRequests: [PullRequest] = [],
+        error: String? = nil,
+        branchCount: Int? = nil,
+        worktreeCount: Int? = nil
+    ) {
         self.repo = repo
         self.pullRequests = pullRequests
         self.error = error
+        self.branchCount = branchCount
+        self.worktreeCount = worktreeCount
     }
 
     public var regularPullRequests: [PullRequest] {
@@ -193,6 +250,23 @@ public struct RepoSnapshot: Equatable, Sendable {
 
     public var hiddenDependabotCount: Int {
         dependabotPullRequests.count
+    }
+
+    /// Row label for the dropdown, e.g. `Acorn-Compute  28 PRs | 32 branches | 3 worktrees`.
+    public func menuRowTitle(includeDependabot: Bool) -> String {
+        var segments: [String] = []
+        if let count = visibleCount(includeDependabot: includeDependabot) {
+            segments.append("\(count) PR\(count == 1 ? "" : "s")")
+        } else {
+            segments.append("—")
+        }
+        if let branchCount {
+            segments.append("\(branchCount) branch\(branchCount == 1 ? "" : "es")")
+        }
+        if let worktreeCount {
+            segments.append("\(worktreeCount) worktree\(worktreeCount == 1 ? "" : "s")")
+        }
+        return "\(repo.displayName)  \(segments.joined(separator: " | "))"
     }
 }
 
@@ -221,15 +295,54 @@ public struct DashboardSnapshot: Equatable, Sendable {
         repos.contains { $0.error != nil }
     }
 
+    /// Sum of known branch counts. nil when no repo reported one.
+    public var totalBranchCount: Int? {
+        let known = repos.compactMap(\.branchCount)
+        return known.isEmpty ? nil : known.reduce(0, +)
+    }
+
+    /// Sum of known worktree counts. nil when no repo reported one.
+    public var totalWorktreeCount: Int? {
+        let known = repos.compactMap(\.worktreeCount)
+        return known.isEmpty ? nil : known.reduce(0, +)
+    }
+
+    /// Header line for the dropdown, e.g. `12 open PRs | 245 branches | 70 worktrees`.
+    public func headerSummary(includeDependabot: Bool) -> String {
+        let total = totalVisible(includeDependabot: includeDependabot)
+        var segments = [total == 0 ? "No open PRs" : "\(total) open PR\(total == 1 ? "" : "s")"]
+        if let totalBranchCount {
+            segments.append("\(totalBranchCount) branch\(totalBranchCount == 1 ? "" : "es")")
+        }
+        if let totalWorktreeCount {
+            segments.append("\(totalWorktreeCount) worktree\(totalWorktreeCount == 1 ? "" : "s")")
+        }
+        return segments.joined(separator: " | ")
+    }
+
     public func menuBarTitle(includeDependabot: Bool) -> String {
         guard !repos.isEmpty else { return "PRBar" }
-        return repos.map { snapshot in
-            if let value = snapshot.visibleCount(includeDependabot: includeDependabot) {
-                return String(value)
+        let shown = repos.compactMap { snapshot -> String? in
+            guard let value = snapshot.visibleCount(includeDependabot: includeDependabot) else {
+                return "—"
             }
-            return "—"
+            return value == 0 ? nil : String(value)
         }
-        .joined(separator: "·")
+        guard !shown.isEmpty else { return "✓" }
+        return shown.joined(separator: "·")
+    }
+
+    /// Menu ordering: repos with open PRs (or errors) keep their configured order;
+    /// repos with zero visible PRs sink to the bottom.
+    public func reposOrderedForMenu(includeDependabot: Bool) -> [RepoSnapshot] {
+        let (empty, active) = repos.reduce(into: ([RepoSnapshot](), [RepoSnapshot]())) { partial, snapshot in
+            if snapshot.visibleCount(includeDependabot: includeDependabot) == 0 {
+                partial.0.append(snapshot)
+            } else {
+                partial.1.append(snapshot)
+            }
+        }
+        return active + empty
     }
 
     public func tooltip(includeDependabot: Bool) -> String {

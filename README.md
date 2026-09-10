@@ -4,7 +4,7 @@ Tiny macOS menu extra that shows how many GitHub pull requests are open on the r
 
 Inspired by [CodexBar](https://github.com/steipete/codexbar), but it is a separate app. It talks to GitHub through the `gh` CLI already logged in on your Mac. No extra token is stored.
 
-The bar is a compact run of counts in repo order, for example `19·10·7·16`. Hover for names. Open a repo in the menu to see every open PR.
+The bar is a compact run of counts in repo order, for example `19·10·7·16`. Repos with zero open PRs are left out of the bar (all-zero shows `0`). Hover for names. Open a repo in the menu to see every open PR.
 
 ## Install
 
@@ -31,9 +31,13 @@ See [`config.example.json`](config.example.json) for the file format (`~/.config
 - Pick any GitHub repos (`owner/name` or a github.com URL)
 - Set a display name and two-letter abbreviation when adding; edit them later in the list
 - Drag to reorder; add and remove from **Repos…** (⌘,)
+- Menu header totals open PRs, branches, and worktrees across all repos; each repo row shows its own counts, e.g. `Acorn-Compute  28 PRs | 151 branches | 64 worktrees`
+- Repos with zero open PRs sink to the bottom of the menu (and are hidden from the bar)
+- Branch counts come from GitHub; worktree counts come from a local clone, auto-detected at `~/developer/<name>` or `~/Developer/<name>`, or set per repo with `localPath` in the config file
+- PR rows mark review status: `✓` approved, `±` changes requested (hover for details)
 - Dependabot PRs always show in each repo list, grouped under a **Dependabot** header at the bottom
 - **Count Dependabot PRs** only changes the numbers in the menu bar, not the list
-- Refresh defaults to every two minutes (one `gh pr list` per repo). **Refresh Every** in the menu can go to 1 / 2 / 5 / 15 / 30 minutes or manual-only; ⌘R always fetches now
+- Refresh defaults to every two minutes (one batched GraphQL call for all repos, with a per-repo `gh pr list` fallback). **Refresh Every** in the menu can go to 1 / 2 / 5 / 15 / 30 minutes or manual-only; ⌘R always fetches now
 
 ## CLI
 

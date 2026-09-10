@@ -8,7 +8,6 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private let settings: SettingsStore
     private let statusItem: NSStatusItem
     private var menu: NSMenu
-    private let listedPRLimit = 40
     private let onEditRepos: () -> Void
 
     init(store: PRStore, settings: SettingsStore, onEditRepos: @escaping () -> Void) {
@@ -109,7 +108,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             empty.isEnabled = false
             menu.addItem(empty)
         } else {
-            for repo in snapshot.repos {
+            for repo in snapshot.reposOrderedForMenu(includeDependabot: include) {
                 menu.addItem(repoMenuItem(repo, includeDependabot: include))
             }
         }
@@ -186,13 +185,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         if snapshot.fetchedAt == nil {
             return store.lastError ?? "Fetching open PRs…"
         }
-        let total = snapshot.totalVisible(includeDependabot: includeDependabot)
-        return "\(total) open PR\(total == 1 ? "" : "s")"
+        return snapshot.headerSummary(includeDependabot: includeDependabot)
     }
 
     private func repoMenuItem(_ repo: RepoSnapshot, includeDependabot: Bool) -> NSMenuItem {
-        let countLabel = repo.visibleCount(includeDependabot: includeDependabot).map(String.init) ?? "—"
-        let title = "\(repo.repo.displayName) (\(countLabel))"
+        let title = repo.menuRowTitle(includeDependabot: includeDependabot)
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
         item.submenu = repoSubmenu(repo)
         if repo.error != nil {
@@ -228,7 +225,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
         if !regular.isEmpty {
             submenu.addItem(.separator())
-            appendPRItems(regular, to: submenu, repo: repo.repo)
+            appendPRItems(regular, to: submenu)
         }
 
         if !dependabot.isEmpty {
@@ -236,7 +233,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             let header = NSMenuItem(title: "Dependabot", action: nil, keyEquivalent: "")
             header.isEnabled = false
             submenu.addItem(header)
-            appendPRItems(dependabot, to: submenu, repo: repo.repo, markDependabot: false)
+            appendPRItems(dependabot, to: submenu, markDependabot: false)
         }
 
         if regular.isEmpty, dependabot.isEmpty, repo.error == nil {
@@ -252,23 +249,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     private func appendPRItems(
         _ pulls: [PullRequest],
         to menu: NSMenu,
-        repo: TrackedRepo,
         markDependabot: Bool = true
     ) {
-        let listed = pulls.prefix(listedPRLimit)
-        for pr in listed {
+        for pr in pulls {
             menu.addItem(prMenuItem(pr, markDependabot: markDependabot))
-        }
-        let remaining = pulls.count - listed.count
-        if remaining > 0 {
-            let more = NSMenuItem(
-                title: "and \(remaining) more…",
-                action: #selector(openRepo(_:)),
-                keyEquivalent: ""
-            )
-            more.target = self
-            more.representedObject = repo.pullsURL
-            menu.addItem(more)
         }
     }
 
@@ -280,7 +264,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         )
         item.target = self
         item.representedObject = pr.url
-        item.toolTip = "Opened \(pr.openedDateLabel)\n\(pr.authorLogin)\n\(pr.title)"
+        var tooltip = "Opened \(pr.openedDateLabel)\n\(pr.authorLogin)\n\(pr.title)"
+        if let status = pr.statusSummary {
+            tooltip += "\n\(status)"
+        }
+        item.toolTip = tooltip
         return item
     }
 
