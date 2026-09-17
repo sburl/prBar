@@ -1,11 +1,11 @@
-# PRBar: Stacked PR support (feature spec)
+# prBar: Stacked PR support (feature spec)
 
 **Created:** 2026-08-28
 **Status:** Proposed — pending Linear project
 
 ## Why
 
-GitHub shipped stacked pull requests in public preview on 2026-07-30. PRBar
+GitHub shipped stacked pull requests in public preview on 2026-07-30. prBar
 currently renders each repo's open PRs as a flat list; stacked PRs from the
 same series appear as unrelated rows.
 

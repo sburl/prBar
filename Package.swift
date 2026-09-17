@@ -3,14 +3,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "PRBar",
+    name: "prBar",
     platforms: [
         .macOS(.v14),
     ],
     products: [
         .library(name: "PRBarCore", targets: ["PRBarCore"]),
-        .executable(name: "PRBar", targets: ["PRBar"]),
-        // Not `prbar`: APFS is case-insensitive, so it would collide with `PRBar`.
+        .executable(name: "prBar", targets: ["PRBar"]),
+        // Not `prbar`: APFS is case-insensitive, so it would collide with `prBar`.
         .executable(name: "prbar-cli", targets: ["PRBarCLI"]),
     ],
     targets: [

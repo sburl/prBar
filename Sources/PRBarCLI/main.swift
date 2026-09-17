@@ -28,7 +28,7 @@ enum PRBarCLI {
             let configuration = try PRBarConfigFile.load()
             if configuration.repos.isEmpty {
                 FileHandle.standardError.write(
-                    Data("No repos configured. Add some in PRBar → Repos… or edit ~/.config/prbar/config.json\n".utf8)
+                    Data("No repos configured. Add some in prBar → Repos… or edit ~/.config/prbar/config.json\n".utf8)
                 )
                 exit(1)
             }
