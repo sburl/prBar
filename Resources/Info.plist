@@ -5,15 +5,15 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>PRBar</string>
+	<string>prBar</string>
 	<key>CFBundleExecutable</key>
-	<string>PRBar</string>
+	<string>prBar</string>
 	<key>CFBundleIdentifier</key>
 	<string>lc.bestprice.prbar</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>PRBar</string>
+	<string>prBar</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

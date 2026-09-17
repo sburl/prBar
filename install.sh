@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install PRBar as a menu extra in ~/Applications.
+# Install prBar as a menu extra in ~/Applications.
 #
 #   curl -fsSL https://raw.githubusercontent.com/sburl/prBar/main/install.sh | bash
 #
@@ -7,7 +7,7 @@
 set -euo pipefail
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
-  echo "PRBar is macOS 14+ only." >&2
+  echo "prBar is macOS 14+ only." >&2
   exit 1
 fi
 

@@ -1,4 +1,4 @@
-# PRBar
+# prBar
 
 Tiny macOS menu extra that shows how many GitHub pull requests are open on the repos you care about.
 
@@ -8,13 +8,13 @@ The bar is a compact run of counts in repo order, for example `19·10·7·16`. R
 
 ## Install
 
-macOS 14+, [Swift / Xcode CLT](https://developer.apple.com/xcode/), and [`gh`](https://cli.github.com/) (`brew install gh && gh auth login`). Private repos need `repo` scope.
+macOS 14+, [Swift 6.0+ / Xcode CLT](https://developer.apple.com/xcode/), and [`gh`](https://cli.github.com/) (`brew install gh && gh auth login`). Private repos need `repo` scope.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sburl/prBar/main/install.sh | bash
 ```
 
-That clones, builds, and drops `~/Applications/PRBar.app` (no Dock icon). On first launch, **Repos…** opens so you can add repositories. **Open at Login** is in the menu.
+That clones, builds, and drops `~/Applications/prBar.app` (no Dock icon). On first launch, **Repos…** opens so you can add repositories. **Open at Login** is in the menu.
 
 From a checkout:
 
@@ -22,7 +22,7 @@ From a checkout:
 ./scripts/run.sh
 ```
 
-The CLI is named `prbar-cli` because macOS filesystems treat `prbar` and `PRBar` as the same file.
+The CLI is named `prbar-cli` because macOS filesystems treat `prbar` and `prBar` as the same file.
 
 See [`config.example.json`](config.example.json) for the file format (`~/.config/prbar/config.json`).
 
@@ -42,14 +42,14 @@ See [`config.example.json`](config.example.json) for the file format (`~/.config
 ## CLI
 
 ```bash
-~/Applications/PRBar.app/Contents/MacOS/prbar-cli
-~/Applications/PRBar.app/Contents/MacOS/prbar-cli --include-dependabot
-~/Applications/PRBar.app/Contents/MacOS/prbar-cli --json
+~/Applications/prBar.app/Contents/MacOS/prbar-cli
+~/Applications/prBar.app/Contents/MacOS/prbar-cli --include-dependabot
+~/Applications/prBar.app/Contents/MacOS/prbar-cli --json
 ```
 
 ## Notes
 
-Menu-bar apps do not inherit your shell `PATH`. PRBar looks for `gh` in `/opt/homebrew/bin`, `/usr/local/bin`, `/usr/bin`, then `PATH`.
+Menu-bar apps do not inherit your shell `PATH`. prBar looks for `gh` in `/opt/homebrew/bin`, `/usr/local/bin`, `/usr/bin`, then `PATH`.
 
 `refreshInterval` in the config file is seconds. `0` means manual refresh only.
 

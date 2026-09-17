@@ -136,6 +136,6 @@ final class MenuBarTitleTests: XCTestCase {
     }
 
     func testEmptyTitle() {
-        XCTAssertEqual(DashboardSnapshot.empty.menuBarTitle(includeDependabot: false), "PRBar")
+        XCTAssertEqual(DashboardSnapshot.empty.menuBarTitle(includeDependabot: false), "prBar")
     }
 }

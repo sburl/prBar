@@ -321,7 +321,7 @@ public struct DashboardSnapshot: Equatable, Sendable {
     }
 
     public func menuBarTitle(includeDependabot: Bool) -> String {
-        guard !repos.isEmpty else { return "PRBar" }
+        guard !repos.isEmpty else { return "prBar" }
         let shown = repos.compactMap { snapshot -> String? in
             guard let value = snapshot.visibleCount(includeDependabot: includeDependabot) else {
                 return "—"

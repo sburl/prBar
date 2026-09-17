@@ -23,7 +23,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         if let button = statusItem.button {
             button.image = nil
             button.imagePosition = .noImage
-            button.setAccessibilityTitle("PRBar")
+            button.setAccessibilityTitle("prBar")
         }
         render()
         observe()
@@ -54,7 +54,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         guard let button = statusItem.button else { return }
         let include = settings.includeDependabot
         let title = store.snapshot.fetchedAt == nil && store.isRefreshing
-            ? "PRBar"
+            ? "prBar"
             : store.snapshot.menuBarTitle(includeDependabot: include)
         let font = NSFont.monospacedDigitSystemFont(
             ofSize: NSFont.systemFontSize(for: .small),
@@ -69,7 +69,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         )
         button.toolTip = store.snapshot.tooltip(includeDependabot: include)
         button.setAccessibilityTitle(
-            "PRBar \(store.snapshot.tooltip(includeDependabot: include).replacingOccurrences(of: "\n", with: ", "))"
+            "prBar \(store.snapshot.tooltip(includeDependabot: include).replacingOccurrences(of: "\n", with: ", "))"
         )
         button.appearsDisabled = store.lastError != nil && store.snapshot.fetchedAt == nil
     }
@@ -171,7 +171,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         }
 
         let quit = NSMenuItem(
-            title: "Quit PRBar",
+            title: "Quit prBar",
             action: #selector(NSApplication.terminate(_:)),
             keyEquivalent: "q"
         )

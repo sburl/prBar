@@ -168,7 +168,7 @@ final class ReposWindowController: NSObject, NSWindowDelegate {
             let view = ReposSettingsView(settings: settings)
             let hosting = NSHostingController(rootView: view)
             let window = NSWindow(contentViewController: hosting)
-            window.title = "PRBar Repos"
+            window.title = "prBar Repos"
             window.styleMask = [.titled, .closable, .resizable]
             window.setContentSize(NSSize(width: 600, height: 440))
             window.isReleasedWhenClosed = false
