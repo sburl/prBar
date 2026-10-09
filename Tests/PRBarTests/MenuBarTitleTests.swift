@@ -91,12 +91,12 @@ final class MenuBarTitleTests: XCTestCase {
         )
         XCTAssertEqual(changesRequested.statusGlyphs, "±")
         XCTAssertEqual(changesRequested.statusSummary, "Changes requested")
-        XCTAssertEqual(changesRequested.menuTitle(markDependabot: true), "       #7 ±  fix things")
+        XCTAssertEqual(changesRequested.menuTitle(markDependabot: true), "       ·  #7 ±  fix things")
 
         let clean = PullRequest.fixture(number: 8)
         XCTAssertEqual(clean.statusGlyphs, "")
         XCTAssertNil(clean.statusSummary)
-        XCTAssertEqual(clean.menuTitle(markDependabot: true), "       #8  example")
+        XCTAssertEqual(clean.menuTitle(markDependabot: true), "       ·  #8  example")
 
         let approved = PullRequest(
             repoID: "octocat/one",
@@ -108,6 +108,60 @@ final class MenuBarTitleTests: XCTestCase {
             reviewDecision: .approved
         )
         XCTAssertEqual(approved.statusGlyphs, "✓")
+    }
+
+    func testOpenedDateUsesGivenTimeZone() throws {
+        // 2026-08-13T02:30Z is still the evening of 08-12 in Los Angeles.
+        let pr = PullRequest(
+            repoID: "octocat/one",
+            number: 7,
+            title: "late night",
+            url: URL(string: "https://github.com/octocat/one/pull/7")!,
+            isDraft: false,
+            authorLogin: "octocat",
+            createdAt: Date(timeIntervalSince1970: 1_786_588_200)
+        )
+        let utc = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let losAngeles = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        XCTAssertEqual(pr.openedDateLabel(in: utc), "08-13")
+        XCTAssertEqual(pr.openedDateLabel(in: losAngeles), "08-12")
+        XCTAssertEqual(
+            pr.menuTitle(markDependabot: true, timeZone: losAngeles),
+            "08-12  ·  #7  late night"
+        )
+    }
+
+    func testCheckGlyphsSitBetweenDateAndNumber() {
+        func pr(_ status: CheckStatus?, queued: Bool = false) -> PullRequest {
+            PullRequest(
+                repoID: "octocat/one",
+                number: 7,
+                title: "fix things",
+                url: URL(string: "https://github.com/octocat/one/pull/7")!,
+                isDraft: false,
+                authorLogin: "octocat",
+                checkStatus: status,
+                isInMergeQueue: queued
+            )
+        }
+        XCTAssertEqual(pr(.passing).menuTitle(markDependabot: true), "       ✓  #7  fix things")
+        XCTAssertEqual(pr(.failing).menuTitle(markDependabot: true), "       ✗  #7  fix things")
+        XCTAssertEqual(pr(.pending).menuTitle(markDependabot: true), "       ⧖  #7  fix things")
+        XCTAssertEqual(pr(.passing, queued: true).menuTitle(markDependabot: true), "       ✓ ⇢  #7  fix things")
+
+        XCTAssertEqual(pr(.failing).checkSummary, "CI failing")
+        XCTAssertEqual(pr(.pending, queued: true).checkSummary, "CI pending, in merge queue")
+        XCTAssertEqual(pr(nil, queued: true).checkSummary, "In merge queue")
+        XCTAssertNil(pr(nil).checkSummary)
+    }
+
+    func testCheckStatusFromRollupState() {
+        XCTAssertEqual(CheckStatus(rollupState: "SUCCESS"), .passing)
+        XCTAssertEqual(CheckStatus(rollupState: "FAILURE"), .failing)
+        XCTAssertEqual(CheckStatus(rollupState: "ERROR"), .failing)
+        XCTAssertEqual(CheckStatus(rollupState: "PENDING"), .pending)
+        XCTAssertEqual(CheckStatus(rollupState: "EXPECTED"), .pending)
+        XCTAssertNil(CheckStatus(rollupState: "SOMETHING_NEW"))
     }
 
     func testHeaderSummaryTotals() {

@@ -128,7 +128,16 @@ final class GitHubClientTests: XCTestCase {
                 "number":1,"title":"pr one","url":"https://github.com/octocat/one/pull/1",
                 "isDraft":false,"createdAt":"2026-08-12T10:00:00Z",
                 "author":{"login":"octocat"},
-                "reviewDecision":"APPROVED"
+                "reviewDecision":"APPROVED",
+                "isInMergeQueue":true,
+                "commits":{"nodes":[{"commit":{"statusCheckRollup":{"state":"PENDING"}}}]}
+              },{
+                "number":2,"title":"no checks","url":"https://github.com/octocat/one/pull/2",
+                "isDraft":false,"createdAt":"2026-08-12T10:00:00Z",
+                "author":{"login":"octocat"},
+                "reviewDecision":null,
+                "isInMergeQueue":false,
+                "commits":{"nodes":[{"commit":{"statusCheckRollup":null}}]}
               }]
             }
           },
@@ -151,6 +160,11 @@ final class GitHubClientTests: XCTestCase {
         XCTAssertEqual(pr.number, 1)
         XCTAssertEqual(pr.reviewDecision, .approved)
         XCTAssertNotNil(pr.createdAt)
+        XCTAssertEqual(pr.checkStatus, .pending)
+        XCTAssertTrue(pr.isInMergeQueue)
+        let unchecked = try XCTUnwrap(snapshots[0].pullRequests.last)
+        XCTAssertNil(unchecked.checkStatus)
+        XCTAssertFalse(unchecked.isInMergeQueue)
         XCTAssertEqual(snapshots[1].error, "repo not found or inaccessible")
     }
 

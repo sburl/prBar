@@ -209,7 +209,8 @@ public struct GitHubClient: Sendable {
         orderBy: {field: CREATED_AT, direction: DESC}\(afterArg)) { \
         pageInfo { hasNextPage endCursor } \
         nodes { number title url isDraft createdAt \
-        author { login } reviewDecision } } }
+        author { login } reviewDecision isInMergeQueue \
+        commits(last: 1) { nodes { commit { statusCheckRollup { state } } } } } } }
         """
     }
 
@@ -326,6 +327,24 @@ struct GHGraphPullRequest: Decodable {
     let createdAt: String?
     let author: Author?
     let reviewDecision: String?
+    let isInMergeQueue: Bool?
+    let commits: Commits?
+
+    struct Commits: Decodable {
+        struct Node: Decodable {
+            struct Commit: Decodable {
+                struct Rollup: Decodable {
+                    let state: String
+                }
+
+                let statusCheckRollup: Rollup?
+            }
+
+            let commit: Commit
+        }
+
+        let nodes: [Node]
+    }
 
     func pullRequest(repoID: String) -> PullRequest {
         PullRequest(
@@ -336,7 +355,10 @@ struct GHGraphPullRequest: Decodable {
             isDraft: isDraft,
             authorLogin: author?.login ?? "",
             createdAt: parseGitHubDate(createdAt),
-            reviewDecision: reviewDecision.flatMap(ReviewDecision.init(rawValue:))
+            reviewDecision: reviewDecision.flatMap(ReviewDecision.init(rawValue:)),
+            checkStatus: (commits?.nodes.last?.commit.statusCheckRollup?.state)
+                .flatMap(CheckStatus.init(rollupState:)),
+            isInMergeQueue: isInMergeQueue ?? false
         )
     }
 }

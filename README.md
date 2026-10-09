@@ -34,6 +34,7 @@ See [`config.example.json`](config.example.json) for the file format (`~/.config
 - Menu header totals open PRs, branches, and worktrees across all repos; each repo row shows its own counts, e.g. `Acorn-Compute  28 PRs | 151 branches | 64 worktrees`
 - Repos with zero open PRs sink to the bottom of the menu (and are hidden from the bar)
 - Branch counts come from GitHub; worktree counts come from a local clone, auto-detected at `~/developer/<name>` or `~/Developer/<name>`, or set per repo with `localPath` in the config file
+- PR rows show the opened date in your Mac's time zone, then CI for the head commit: `✓` passing, `✗` failing, `⧖` pending, `·` no checks; `⇢` follows when the PR is in the merge queue
 - PR rows mark review status: `✓` approved, `±` changes requested (hover for details)
 - Dependabot PRs always show in each repo list, grouped under a **Dependabot** header at the bottom
 - **Count Dependabot PRs** only changes the numbers in the menu bar, not the list

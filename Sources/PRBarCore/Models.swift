@@ -124,6 +124,39 @@ public enum ReviewDecision: String, Equatable, Sendable {
     }
 }
 
+/// Combined CI result for a PR's head commit (GitHub's status check rollup).
+public enum CheckStatus: Equatable, Sendable {
+    case passing
+    case failing
+    case pending
+
+    /// Maps GraphQL `StatusState`. Unknown values are treated as no result.
+    public init?(rollupState: String) {
+        switch rollupState {
+        case "SUCCESS": self = .passing
+        case "FAILURE", "ERROR": self = .failing
+        case "PENDING", "EXPECTED": self = .pending
+        default: return nil
+        }
+    }
+
+    public var glyph: String {
+        switch self {
+        case .passing: "✓"
+        case .failing: "✗"
+        case .pending: "⧖"
+        }
+    }
+
+    public var label: String {
+        switch self {
+        case .passing: "CI passing"
+        case .failing: "CI failing"
+        case .pending: "CI pending"
+        }
+    }
+}
+
 public struct PullRequest: Equatable, Sendable, Identifiable {
     public var id: String { "\(repoID)#\(number)" }
     public let repoID: String
@@ -134,6 +167,9 @@ public struct PullRequest: Equatable, Sendable, Identifiable {
     public let authorLogin: String
     public let createdAt: Date?
     public let reviewDecision: ReviewDecision?
+    /// nil when the head commit has no checks, or the fetch path doesn't report them.
+    public let checkStatus: CheckStatus?
+    public let isInMergeQueue: Bool
 
     public var isDependabot: Bool {
         Dependabot.matches(login: authorLogin)
@@ -147,7 +183,9 @@ public struct PullRequest: Equatable, Sendable, Identifiable {
         isDraft: Bool,
         authorLogin: String,
         createdAt: Date? = nil,
-        reviewDecision: ReviewDecision? = nil
+        reviewDecision: ReviewDecision? = nil,
+        checkStatus: CheckStatus? = nil,
+        isInMergeQueue: Bool = false
     ) {
         self.repoID = repoID
         self.number = number
@@ -157,13 +195,16 @@ public struct PullRequest: Equatable, Sendable, Identifiable {
         self.authorLogin = authorLogin
         self.createdAt = createdAt
         self.reviewDecision = reviewDecision
+        self.checkStatus = checkStatus
+        self.isInMergeQueue = isInMergeQueue
     }
 
     /// Fixed-width opened date so submenu rows line up: `08-12`.
-    public var openedDateLabel: String {
+    /// Uses the Mac's time zone, so a PR opened late in the evening shows the local day.
+    public func openedDateLabel(in timeZone: TimeZone = .current) -> String {
         guard let createdAt else { return "     " }
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+        calendar.timeZone = timeZone
         let parts = calendar.dateComponents([.month, .day], from: createdAt)
         guard let month = parts.month, let day = parts.day else {
             return "     "
@@ -186,7 +227,24 @@ public struct PullRequest: Equatable, Sendable, Identifiable {
         reviewDecision?.label
     }
 
-    public func menuTitle(markDependabot: Bool, titleLimit: Int = 72) -> String {
+    /// CI column shown between the date and the number: ✓ passing, ✗ failing,
+    /// ⧖ pending, `·` when there are no checks. `⇢` follows when the PR is in the merge queue.
+    public var checkGlyphs: String {
+        (checkStatus?.glyph ?? "·") + (isInMergeQueue ? " ⇢" : "")
+    }
+
+    /// Human-readable CI status, e.g. `CI passing, in merge queue`.
+    public var checkSummary: String? {
+        let parts = [checkStatus?.label, isInMergeQueue ? "in merge queue" : nil].compactMap { $0 }
+        guard let first = parts.first else { return nil }
+        return ([first.prefix(1).uppercased() + first.dropFirst()] + parts.dropFirst()).joined(separator: ", ")
+    }
+
+    public func menuTitle(
+        markDependabot: Bool,
+        titleLimit: Int = 72,
+        timeZone: TimeZone = .current
+    ) -> String {
         var prefix = "#\(number)"
         if isDraft { prefix += " [draft]" }
         if markDependabot, isDependabot { prefix += " [deps]" }
@@ -197,7 +255,7 @@ public struct PullRequest: Equatable, Sendable, Identifiable {
         } else {
             clipped = title
         }
-        return "\(openedDateLabel)  \(prefix)  \(clipped)"
+        return "\(openedDateLabel(in: timeZone))  \(checkGlyphs)  \(prefix)  \(clipped)"
     }
 }
 

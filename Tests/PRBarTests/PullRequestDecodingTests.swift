@@ -35,13 +35,14 @@ final class PullRequestDecodingTests: XCTestCase {
         XCTAssertTrue(prs[0].isDraft)
         XCTAssertEqual(prs[0].authorLogin, "octocat")
         XCTAssertFalse(prs[0].isDependabot)
-        XCTAssertEqual(prs[0].openedDateLabel, "08-12")
+        let utc = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        XCTAssertEqual(prs[0].openedDateLabel(in: utc), "08-12")
         XCTAssertEqual(
-            prs[0].menuTitle(markDependabot: true),
-            "08-12  #12 [draft]  add a widget"
+            prs[0].menuTitle(markDependabot: true, timeZone: utc),
+            "08-12  ·  #12 [draft]  add a widget"
         )
         XCTAssertTrue(prs[1].isDependabot)
         XCTAssertEqual(prs[2].authorLogin, "")
-        XCTAssertEqual(prs[2].openedDateLabel, "     ")
+        XCTAssertEqual(prs[2].openedDateLabel(), "     ")
     }
 }

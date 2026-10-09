@@ -264,7 +264,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         )
         item.target = self
         item.representedObject = pr.url
-        var tooltip = "Opened \(pr.openedDateLabel)\n\(pr.authorLogin)\n\(pr.title)"
+        var tooltip = "Opened \(pr.openedDateLabel())\n\(pr.authorLogin)\n\(pr.title)"
+        if let checks = pr.checkSummary {
+            tooltip += "\n\(checks)"
+        }
         if let status = pr.statusSummary {
             tooltip += "\n\(status)"
         }
